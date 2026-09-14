@@ -1,0 +1,42 @@
+schema: spec-driven
+
+# Generated and maintained with OpenSpec CLI 1.13.0.
+context: |
+  Project: Tenoro WMS programming challenge.
+  Stack: Spring Boot 3.5.4, Java 24, Gradle multi-module.
+  Architecture: hexagonal / ports and adapters as provided by the template.
+  Modules: domain for business logic and ports, api for DTOs, infra for adapters and configuration, root src for Spring Boot app/tests.
+  Persistence: in-memory is acceptable for the core, but critical stock and task operations must be atomic within one process.
+  Concurrency: use one shared process-wide reentrant critical section for stock mutations, replenishment evaluation, task confirmation and cancellation.
+  API base path: /api/templates.
+  Documentation: code-first OpenAPI / Swagger.
+  Runtime requirement: Java 24. OpenSpec is development tooling only.
+
+rules:
+  proposal:
+    - Keep the scope focused on one logical vertical slice.
+    - State non-goals explicitly when avoiding overengineering.
+  specs:
+    - Requirements must be observable and testable.
+    - Use concrete scenarios for error cases and business rules.
+    - Include HTTP status expectations for API behavior.
+  design:
+    - Preserve the template's hexagonal architecture.
+    - Keep business rules out of controllers.
+    - Avoid speculative DDD patterns or infrastructure.
+    - Explain concurrency and atomicity decisions for inventory and replenishment.
+    - Use checked long arithmetic for stock additions and subtractions.
+  tasks:
+    - Tasks must be small enough to review and verify.
+    - Include domain tests for critical business rules.
+    - Include integration tests for API flows.
+
+operations:
+  apply:
+    guidance:
+      - Implement one logical task at a time.
+      - Run focused tests frequently.
+      - Keep the User example as a placement reference only.
+  archive:
+    guidance:
+      - Archive only after tests pass and verification findings are resolved or explicitly accepted.
