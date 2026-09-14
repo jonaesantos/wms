@@ -1,9 +1,11 @@
 ## 1. Domain Foundation
 
 - [ ] 1.1 Add Jakarta Bean Validation API to `api` and the Spring validation runtime to `infra`, and verify `./gradlew compileJava` succeeds.
-- [ ] 1.2 Add `Sku`, `LocationCode`, location type, location, inventory item, and composite inventory key domain types with strict validation, and verify focused domain tests cover valid, blank, padded, case-sensitive, and negative-quantity cases.
-- [ ] 1.3 Add explicit validation, not-found, and conflict domain failures with stable error codes and details, plus location and inventory inbound/outbound ports, and verify the domain module compiles without Spring dependencies.
-- [ ] 1.4 Add a WMS API error response, centralized `@RestControllerAdvice`, and strict integer deserialization configuration; verify focused web tests map each domain category and representative deserialization or validation failures to the specified structured errors.
+- [ ] 1.2 Add the `Sku` and `LocationCode` value objects with strict validation, and verify focused domain tests cover valid, blank, padded (surrounding-whitespace), and case-sensitive cases and reject each invalid form.
+- [ ] 1.3 Add the location type enum, `Location` and `InventoryItem` models, and the composite inventory key, and verify focused domain tests cover construction from valid value objects and rejection of a negative quantity.
+- [ ] 1.4 Add explicit validation, not-found, and conflict domain failures with stable error codes and details, plus location and inventory inbound/outbound ports, and verify the domain module compiles without Spring dependencies.
+- [ ] 1.5 Add a WMS API error response and a centralized `@RestControllerAdvice` mapping the validation, not-found, and conflict domain categories to `400`, `404`, and `409`, and verify focused web tests assert each category returns its status with `code`, `message`, and object-valued `details`.
+- [ ] 1.6 Add strict integer deserialization configuration (reject decimal coercion and out-of-range integers) and handling for malformed JSON and invalid enums, and verify focused web tests map each of these to a `400` `VALIDATION_ERROR` rather than a `500`.
 
 ## 2. Location Management
 
@@ -19,10 +21,11 @@
 
 ## 4. Atomic Stock Movement
 
-- [ ] 4.1 Implement movement validation and the all-or-nothing debit/credit path with checked `long` arithmetic, writing domain tests first for success, absent destination quant, absent origin quant, insufficient stock, same location, non-positive quantity, unknown locations, and overflow rollback.
-- [ ] 4.2 Add concurrent domain tests for competing movements, overlapping reads, and stock replacements, and verify quantities never become negative, total moved stock is conserved, and no partial pair is observable.
-- [ ] 4.3 Add the movement DTO with a boxed, required, positive `Long` quantity, response mapping, and documented `POST /stock/move` endpoint; verify integration tests cover the complete success response, missing or invalid numeric values, and exact `400`, `404`, and `409` errors.
-- [ ] 4.4 Add concurrent Spring integration tests that exercise the wired services or HTTP endpoints for duplicate location creation and competing movements, and verify the production beans share one lock and preserve the same invariants as domain tests.
+- [ ] 4.1 Implement movement validation, writing domain tests first for the rejection cases: same location, non-positive quantity, unknown origin or destination location, absent or insufficient origin stock (`INSUFFICIENT_STOCK`), and verify each returns its specified failure and preserves both quants.
+- [ ] 4.2 Implement the all-or-nothing debit/credit path with checked `long` arithmetic (`Math.subtractExact`/`Math.addExact`) committed through one repository batch operation, writing domain tests first for success, absent destination quant creation, and overflow rollback (`STOCK_OVERFLOW`); verify no partial pair is ever persisted.
+- [ ] 4.3 Add concurrent domain tests for competing movements, overlapping reads, and stock replacements, and verify quantities never become negative, total moved stock is conserved, and no partial pair is observable.
+- [ ] 4.4 Add the movement DTO with a boxed, required, positive `Long` quantity, response mapping, and documented `POST /stock/move` endpoint; verify integration tests cover the complete success response, missing or invalid numeric values, and exact `400`, `404`, and `409` errors.
+- [ ] 4.5 Add concurrent Spring integration tests that exercise the wired services or HTTP endpoints for duplicate location creation and competing movements, and verify the production beans share one lock and preserve the same invariants as domain tests.
 
 ## 5. Contract Verification
 

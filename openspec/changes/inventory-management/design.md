@@ -45,9 +45,19 @@ The inventory service validates identifiers, both locations, distinct endpoints,
 
 Sequential controller calls or independent debit and credit repository methods were rejected because they can expose partial state or require compensation. Destination overflow is an expected conflict; all validation occurs before the batch write.
 
+### Guard against destination overflow (defensive decision beyond the challenge)
+
+The challenge does not mention overflow, and with signed `long` a real credit reaching `Long.MAX_VALUE` is practically unreachable. We still validate the destination credit with `Math.addExact` and return HTTP `409` with error code `STOCK_OVERFLOW` to protect the non-negative and consistent stock invariant and to avoid a silent wraparound into a negative quantity. This is our defensive decision, not a core business rule; it costs one checked operation and one mapped error.
+
 ### Establish stock as an absolute upsert
 
 `POST /stock` replaces the quantity for a composite key, including zero. This follows the challenge wording, which says to establish available stock. Increment semantics were rejected because they make retries ambiguous and overlap with the explicit movement operation.
+
+`POST /stock` returns HTTP `200` even when it creates a quant that did not exist, because the operation establishes or replaces an absolute value rather than creating a new addressable resource identity; `201` was rejected because there is no new resource URL and repeated calls are idempotent replacements.
+
+### Query stock by SKU only in this slice
+
+`GET /stock` supports only the `?sku` query parameter here. The challenge's optional `?location={code}` filter is deliberately out of scope for `inventory-management`; it can be added later without changing the persisted model.
 
 ### Use typed domain failures and centralized HTTP mapping
 
@@ -72,3 +82,5 @@ Location creation returns the created location. Stock replacement returns the re
 ## Migration Plan
 
 No persisted data migration is needed. Add the new vertical slice alongside the User example, run domain and integration tests before the separate seed-bearing change, and verify the five new API paths through OpenAPI and a local application run. Rollback consists of removing the new slice and dependency additions because no external persisted state is introduced.
+
+This slice ships no seed data. The mandatory seed (locations, stock, and replenishment rules together) lives entirely in the planned `replenishment-workflow` change because it depends on rules that do not exist yet here. `inventory-management` is therefore demonstrated standalone through Swagger or `curl` against its five endpoints rather than from a preloaded scenario.

@@ -10,7 +10,7 @@ The WMS needs a reliable inventory foundation before replenishment can be planne
 - Add strict identifier and quantity validation, structured API errors, and OpenAPI documentation aligned with runtime behavior.
 - Add isolated domain tests and API integration tests, including conflict and concurrency scenarios.
 - Keep replenishment rules, tasks, FSM, and the mandatory cross-feature seed in the separate planned `replenishment-workflow` change.
-- Keep automatic replenishment, product catalogs, location capacity, and movement history out of scope.
+- Keep automatic replenishment, product catalogs, location capacity, movement history, and the optional `GET /stock?location={code}` filter out of scope.
 
 ## Capabilities
 
