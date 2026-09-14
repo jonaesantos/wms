@@ -12,4 +12,7 @@ dependencies {
     // Spring core / data commons for shared types
     implementation("org.springframework:spring-core")
     implementation("org.springframework.data:spring-data-commons")
+
+    // Jakarta Bean Validation API for DTO constraint annotations (exposed to infra)
+    api("jakarta.validation:jakarta.validation-api")
 }
