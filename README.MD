@@ -1,123 +1,205 @@
-# Backend Template (Spring Boot + Arquitectura Hexagonal)
+# WMS Challenge
 
-Template para resolver el challenge. Es un backend Java con Spring Boot y arquitectura
-hexagonal (ports & adapters), con un ejemplo funcional (`User`) que podés usar de referencia.
+Solucion para el challenge de WMS de Tenoro. Modela inventario por ubicacion y gestiona reabasto desde ubicaciones de reserva hacia ubicaciones de picking.
 
-> El enunciado del challenge está en [`SPECS.md`](SPECS.md).
+El proyecto usa Spring Boot 3.5.4, Java 24 y Gradle multi-modulo con arquitectura hexagonal.
 
----
+## Requisitos
 
-## 1. Instalar Java 24
+- Java 24.
+- No requiere base de datos externa.
+- Gradle viene incluido con el wrapper `./gradlew`.
 
-Es lo **único** que necesitás instalar. Gradle viene incluido (wrapper `./gradlew`) y no hace falta base de datos.
-
-La forma más simple es con [SDKMAN](https://sdkman.io/):
-
-```shell
-# 1. Instalar SDKMAN
-curl -s "https://get.sdkman.io" | bash
-
-# 2. Cargarlo en la terminal actual
-source "$HOME/.sdkman/bin/sdkman-init.sh"
-
-# 3. Instalar Java 24
-sdk install java 24.0.2-tem
-```
-
-Verificá que quedó bien:
+Verificar Java:
 
 ```shell
-java -version    # debería mostrar la versión 24
+java -version
 ```
 
-> Si preferís, podés instalar cualquier JDK 24 a mano (Temurin, Oracle, etc.) y asegurarte de que `java -version` apunte a esa versión.
-
-## 2. Levantar la app
+## Levantar La App
 
 ```shell
-./run.sh            # levanta en http://localhost:8080
-./run.sh 9090       # o el puerto que quieras
+./run.sh
 ```
 
-Equivalente, si preferís Gradle directo:
+Puerto custom:
+
+```shell
+./run.sh 9090
+```
+
+Gradle directo:
 
 ```shell
 ./gradlew bootRun
 ```
 
-## 3. Probar que anda
+URLs principales:
 
-Todo cuelga del context-path `/api/templates`:
+- API base: `http://localhost:8080/api/templates`
+- Swagger UI: `http://localhost:8080/api/templates/documentation`
+- Health: `http://localhost:8080/api/templates/actuator/health`
 
-- **Swagger UI** (probá los endpoints desde el navegador): http://localhost:8080/api/templates/documentation
-- Health: http://localhost:8080/api/templates/actuator/health
-
-Ejemplo con `curl` usando el CRUD de `User` que ya viene:
+## Correr Tests
 
 ```shell
-BASE=http://localhost:8080/api/templates
-
-# Crear un usuario
-curl -X POST "$BASE/users" -H 'Content-Type: application/json' \
-  -d '{"name":"Ada","email":"ada@example.com"}'
-
-# Listar
-curl "$BASE/users"
+./gradlew test
 ```
 
-## 4. Seed de reabasto (escenario del challenge)
+La suite cubre reglas de dominio, integracion HTTP, errores esperados, OpenAPI, seed y escenarios de concurrencia.
 
-Al arrancar la app (perfil default/`local`) se precarga un escenario **in-memory**, idempotente en el mismo proceso y **no persistente entre reinicios**. No crea tareas.
+## Seed Inicial
 
-**Ubicaciones:** `PICK-01`, `PICK-02` (picking) · `RSV-01`, `RSV-02`, `RSV-03` (reserva)
+Al arrancar la app se carga un escenario in-memory idempotente. No crea tareas de reabasto automaticamente.
 
-**Reglas:** SKU-100/PICK-01 min 20 max 100 · SKU-200/PICK-01 min 10 max 50 · SKU-300/PICK-02 min 30 max 120
+Ubicaciones:
 
-**Stock:** SKU-100 PICK-01=5, RSV-01=60, RSV-02=50 · SKU-200 PICK-01=40 · SKU-300 PICK-02=10, RSV-03=70
+- Picking: `PICK-01`, `PICK-02`.
+- Reserva: `RSV-01`, `RSV-02`, `RSV-03`.
+
+Reglas:
+
+| SKU | Picking | Min | Max |
+|---|---|---:|---:|
+| `SKU-100` | `PICK-01` | 20 | 100 |
+| `SKU-200` | `PICK-01` | 10 | 50 |
+| `SKU-300` | `PICK-02` | 30 | 120 |
+
+Stock inicial:
+
+| SKU | Location | Quantity |
+|---|---|---:|
+| `SKU-100` | `PICK-01` | 5 |
+| `SKU-200` | `PICK-01` | 40 |
+| `SKU-300` | `PICK-02` | 10 |
+| `SKU-100` | `RSV-01` | 60 |
+| `SKU-100` | `RSV-02` | 50 |
+| `SKU-300` | `RSV-03` | 70 |
+
+El seed se puede desactivar con:
+
+```shell
+./gradlew bootRun --args="--wms.seed.enabled=false"
+```
+
+## Probar Con Curl
+
+Definir base:
 
 ```shell
 BASE=http://localhost:8080/api/templates
+```
 
-# Verificar seed
+### Inventario
+
+Listar ubicaciones:
+
+```shell
 curl "$BASE/locations"
-curl "$BASE/stock?sku=SKU-100"
+```
 
-# Evaluar reabasto (currentStock 5 < min 20 → genera tareas OPEN)
+Crear ubicacion:
+
+```shell
+curl -X POST "$BASE/locations" -H 'Content-Type: application/json' \
+  -d '{"code":"PICK-03","type":"PICKING"}'
+```
+
+Cargar stock absoluto:
+
+```shell
+curl -X POST "$BASE/stock" -H 'Content-Type: application/json' \
+  -d '{"sku":"SKU-999","locationCode":"PICK-03","quantity":12}'
+```
+
+Consultar stock por SKU:
+
+```shell
+curl "$BASE/stock?sku=SKU-100"
+```
+
+Mover stock:
+
+```shell
+curl -X POST "$BASE/stock/move" -H 'Content-Type: application/json' \
+  -d '{"sku":"SKU-100","from":"RSV-01","to":"PICK-01","quantity":20}'
+```
+
+### Reabasto
+
+Crear regla:
+
+```shell
+curl -X POST "$BASE/replenishment-rules" -H 'Content-Type: application/json' \
+  -d '{"sku":"SKU-999","locationCode":"PICK-03","min":5,"max":30}'
+```
+
+Evaluar y generar tareas:
+
+```shell
 curl -X POST "$BASE/replenishment/tasks" -H 'Content-Type: application/json' \
   -d '{"sku":"SKU-100","locationCode":"PICK-01"}'
+```
 
-# Listar / confirmar / cancelar
+Listar tareas:
+
+```shell
 curl "$BASE/replenishment/tasks"
-# curl -X POST "$BASE/replenishment/tasks/{id}/confirm"
-# curl -X POST "$BASE/replenishment/tasks/{id}/cancel"
 ```
 
-El seed se puede desactivar con `wms.seed.enabled=false` (así corren los tests de inventario sobre un almacén vacío).
+Confirmar tarea:
 
----
-
-## Cómo está organizado el proyecto
-
-Arquitectura hexagonal en 3 módulos + la app:
-
-```
-domain/   -> modelo y lógica de negocio (Java puro, sin frameworks) + puertos (interfaces)
-api/      -> DTOs de request/response (el contrato de la API)
-infra/    -> adaptadores: controllers REST, persistencia, y wiring de beans (config)
-src/      -> app Spring Boot (main) + tests
+```shell
+curl -X POST "$BASE/replenishment/tasks/{id}/confirm"
 ```
 
-El ejemplo `User` muestra cómo se conecta cada capa:
+Cancelar tarea:
 
-```
-UserController (infra)
-   -> UserService (puerto inbound, domain)
-      -> UserDomainService (domain)
-         -> UserRepository (puerto outbound, domain)
-            -> InMemoryUserRepository (infra)
+```shell
+curl -X POST "$BASE/replenishment/tasks/{id}/cancel"
 ```
 
-El "cableado" de las dependencias (qué implementación se inyecta en cada puerto) vive en
-`infra/src/main/java/io/tenoro/app/infra/config/DomainConfiguration.java`.
+## Endpoints Implementados
 
-La persistencia del ejemplo es **in-memory** (un `Map` en memoria): no necesitás DB para empezar.
+Inventario:
+
+- `POST /locations`
+- `GET /locations`
+- `POST /stock`
+- `GET /stock?sku={sku}`
+- `POST /stock/move`
+
+Reabasto:
+
+- `POST /replenishment-rules`
+- `POST /replenishment/tasks`
+- `GET /replenishment/tasks`
+- `POST /replenishment/tasks/{id}/confirm`
+- `POST /replenishment/tasks/{id}/cancel`
+
+El template original tambien conserva los endpoints de ejemplo `User` y `Hello`.
+
+## Reglas Principales
+
+- El stock se guarda por `sku + locationCode`.
+- `POST /stock` establece una cantidad absoluta, no incremental.
+- `POST /stock/move` es atomico: descuenta origen y acredita destino como una sola operacion.
+- Las reglas de reabasto solo aplican a ubicaciones `PICKING`.
+- La evaluacion genera tareas solo si el stock actual esta por debajo del `min`.
+- `max` es el nivel objetivo de reabasto, no una capacidad fisica.
+- Las tareas siguen la FSM `OPEN -> CONFIRMED` o `OPEN -> CANCELLED`.
+- Confirmar una tarea mueve stock; cancelar no mueve stock.
+- Los errores esperados devuelven `400`, `404` o `409` con `code`, `message` y `details`.
+
+## Arquitectura
+
+```text
+domain/   -> modelos, reglas de negocio, puertos y servicios Java puro
+api/      -> DTOs request/response y contratos OpenAPI
+infra/    -> controllers, adapters in-memory, configuracion Spring y seed
+src/      -> aplicacion Spring Boot y tests de integracion
+```
+
+El codigo sigue el estilo hexagonal del template: los controllers dependen de puertos inbound, los servicios de dominio usan puertos outbound y la infraestructura implementa adapters concretos.
+
+La persistencia es in-memory por alcance del challenge; los datos se pierden al reiniciar la app.
