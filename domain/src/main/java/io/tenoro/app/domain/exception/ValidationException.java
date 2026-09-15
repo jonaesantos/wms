@@ -18,4 +18,12 @@ public class ValidationException extends DomainException {
     public ValidationException(String message) {
         super(CODE, message, null);
     }
+
+    /**
+     * Validation failure with a more specific machine-readable code (for example
+     * {@code LOCATION_NOT_PICKING}) that still maps to HTTP {@code 400}.
+     */
+    public ValidationException(String code, String message, Map<String, Object> details) {
+        super(code, message, details);
+    }
 }

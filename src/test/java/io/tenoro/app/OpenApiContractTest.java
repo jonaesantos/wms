@@ -63,6 +63,11 @@ class OpenApiContractTest {
         assertTrue(paths.path("/stock").has("post"));
         assertTrue(paths.path("/stock").has("get"));
         assertTrue(paths.path("/stock/move").has("post"));
+        assertTrue(paths.path("/replenishment-rules").has("post"));
+        assertTrue(paths.path("/replenishment/tasks").has("post"));
+        assertTrue(paths.path("/replenishment/tasks").has("get"));
+        assertTrue(paths.path("/replenishment/tasks/{id}/confirm").has("post"));
+        assertTrue(paths.path("/replenishment/tasks/{id}/cancel").has("post"));
     }
 
     @Test
@@ -72,6 +77,15 @@ class OpenApiContractTest {
         assertStatuses("/stock", "post", "200", "400", "404");
         assertStatuses("/stock", "get", "200", "400");
         assertStatuses("/stock/move", "post", "200", "400", "404", "409");
+        assertStatuses("/replenishment-rules", "post", "201", "400", "404", "409");
+        assertStatuses("/replenishment/tasks", "post", "200", "400", "404", "409");
+        assertStatuses("/replenishment/tasks", "get", "200");
+        JsonNode listSchema = openApi.path("paths").path("/replenishment/tasks").path("get")
+                .path("responses").path("200").path("content").path("application/json").path("schema");
+        assertEquals("array", listSchema.path("type").asText());
+        assertTrue(listSchema.path("items").path("$ref").asText().endsWith("/ReplenishmentTaskResponse"));
+        assertStatuses("/replenishment/tasks/{id}/confirm", "post", "200", "400", "404", "409");
+        assertStatuses("/replenishment/tasks/{id}/cancel", "post", "200", "400", "404", "409");
     }
 
     @Test
@@ -80,7 +94,10 @@ class OpenApiContractTest {
 
         for (String schema : new String[]{
                 "CreateLocationRequest", "LocationResponse", "EstablishStockRequest",
-                "StockResponse", "MoveStockRequest", "MoveStockResponse", "ApiErrorResponse"}) {
+                "StockResponse", "MoveStockRequest", "MoveStockResponse", "ApiErrorResponse",
+                "CreateReplenishmentRuleRequest", "ReplenishmentRuleResponse",
+                "EvaluateReplenishmentRequest", "ReplenishmentEvaluationResponse",
+                "ReplenishmentTaskResponse"}) {
             assertFalse(schemas.path(schema).isMissingNode(), "schema " + schema + " must be documented");
         }
 
@@ -92,6 +109,16 @@ class OpenApiContractTest {
         JsonNode moveQuantity = schemas.path("MoveStockRequest").path("properties").path("quantity");
         assertEquals("int64", moveQuantity.path("format").asText());
         assertEquals(1, moveQuantity.path("minimum").asInt());
+
+        JsonNode ruleMin = schemas.path("CreateReplenishmentRuleRequest").path("properties").path("min");
+        assertEquals("integer", ruleMin.path("type").asText());
+        assertEquals("int64", ruleMin.path("format").asText());
+        assertEquals(0, ruleMin.path("minimum").asInt());
+        JsonNode ruleRequired = schemas.path("CreateReplenishmentRuleRequest").path("required");
+        assertTrue(required(ruleRequired, "sku"));
+        assertTrue(required(ruleRequired, "locationCode"));
+        assertTrue(required(ruleRequired, "min"));
+        assertTrue(required(ruleRequired, "max"));
 
         JsonNode establishRequired = schemas.path("EstablishStockRequest").path("required");
         assertTrue(required(establishRequired, "sku"));

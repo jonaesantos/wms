@@ -65,6 +65,35 @@ curl -X POST "$BASE/users" -H 'Content-Type: application/json' \
 curl "$BASE/users"
 ```
 
+## 4. Seed de reabasto (escenario del challenge)
+
+Al arrancar la app (perfil default/`local`) se precarga un escenario **in-memory**, idempotente en el mismo proceso y **no persistente entre reinicios**. No crea tareas.
+
+**Ubicaciones:** `PICK-01`, `PICK-02` (picking) · `RSV-01`, `RSV-02`, `RSV-03` (reserva)
+
+**Reglas:** SKU-100/PICK-01 min 20 max 100 · SKU-200/PICK-01 min 10 max 50 · SKU-300/PICK-02 min 30 max 120
+
+**Stock:** SKU-100 PICK-01=5, RSV-01=60, RSV-02=50 · SKU-200 PICK-01=40 · SKU-300 PICK-02=10, RSV-03=70
+
+```shell
+BASE=http://localhost:8080/api/templates
+
+# Verificar seed
+curl "$BASE/locations"
+curl "$BASE/stock?sku=SKU-100"
+
+# Evaluar reabasto (currentStock 5 < min 20 → genera tareas OPEN)
+curl -X POST "$BASE/replenishment/tasks" -H 'Content-Type: application/json' \
+  -d '{"sku":"SKU-100","locationCode":"PICK-01"}'
+
+# Listar / confirmar / cancelar
+curl "$BASE/replenishment/tasks"
+# curl -X POST "$BASE/replenishment/tasks/{id}/confirm"
+# curl -X POST "$BASE/replenishment/tasks/{id}/cancel"
+```
+
+El seed se puede desactivar con `wms.seed.enabled=false` (así corren los tests de inventario sobre un almacén vacío).
+
 ---
 
 ## Cómo está organizado el proyecto

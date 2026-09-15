@@ -11,6 +11,13 @@ public final class ErrorCodes {
     public static final String LOCATION_ALREADY_EXISTS = "LOCATION_ALREADY_EXISTS";
     public static final String INSUFFICIENT_STOCK = "INSUFFICIENT_STOCK";
     public static final String STOCK_OVERFLOW = "STOCK_OVERFLOW";
+    public static final String RULE_ALREADY_EXISTS = "RULE_ALREADY_EXISTS";
+    public static final String RULE_NOT_FOUND = "RULE_NOT_FOUND";
+    public static final String LOCATION_NOT_PICKING = "LOCATION_NOT_PICKING";
+    public static final String TASK_NOT_FOUND = "TASK_NOT_FOUND";
+    public static final String TASK_NOT_OPEN = "TASK_NOT_OPEN";
+    public static final String REPLENISHMENT_IN_PROGRESS = "REPLENISHMENT_IN_PROGRESS";
+    public static final String DESTINATION_TARGET_EXCEEDED = "DESTINATION_TARGET_EXCEEDED";
 
     private ErrorCodes() {
     }
