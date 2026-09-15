@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/replenishment/tasks")
@@ -88,9 +87,10 @@ public class ReplenishmentTaskController {
     })
     @PostMapping("/{id}/confirm")
     public ResponseEntity<ReplenishmentTaskResponse> confirm(
-            @Parameter(description = "Task UUID", required = true, example = "11111111-1111-1111-1111-111111111111")
-            @PathVariable UUID id) {
-        ReplenishmentTask task = replenishmentService.confirm(id.toString());
+            @Parameter(description = "Task UUID", required = true, example = "11111111-1111-1111-1111-111111111111",
+                    schema = @Schema(type = "string", format = "uuid"))
+            @PathVariable String id) {
+        ReplenishmentTask task = replenishmentService.confirm(id);
         return ResponseEntity.ok(ReplenishmentResponseMapper.fromTask(task));
     }
 
@@ -108,9 +108,10 @@ public class ReplenishmentTaskController {
     })
     @PostMapping("/{id}/cancel")
     public ResponseEntity<ReplenishmentTaskResponse> cancel(
-            @Parameter(description = "Task UUID", required = true, example = "11111111-1111-1111-1111-111111111111")
-            @PathVariable UUID id) {
-        ReplenishmentTask task = replenishmentService.cancel(id.toString());
+            @Parameter(description = "Task UUID", required = true, example = "11111111-1111-1111-1111-111111111111",
+                    schema = @Schema(type = "string", format = "uuid"))
+            @PathVariable String id) {
+        ReplenishmentTask task = replenishmentService.cancel(id);
         return ResponseEntity.ok(ReplenishmentResponseMapper.fromTask(task));
     }
 }

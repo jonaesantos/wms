@@ -191,6 +191,12 @@ class ReplenishmentTaskApiIntegrationTest {
         mockMvc.perform(post("/replenishment/tasks/not-a-uuid/cancel"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(post("/replenishment/tasks/1-1-1-1-1/confirm"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        mockMvc.perform(post("/replenishment/tasks/1-1-1-1-1/cancel"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
         String unknown = UUID.randomUUID().toString();
         mockMvc.perform(post("/replenishment/tasks/" + unknown + "/confirm"))

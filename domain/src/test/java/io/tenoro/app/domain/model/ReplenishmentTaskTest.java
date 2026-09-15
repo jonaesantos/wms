@@ -46,6 +46,10 @@ class ReplenishmentTaskTest {
     void parseRejectsMalformedId() {
         assertThrows(ValidationException.class, () -> ReplenishmentTaskId.parse("not-a-uuid"));
         assertThrows(ValidationException.class, () -> ReplenishmentTaskId.parse(" 11111111-1111-1111-1111-111111111111"));
+        assertThrows(ValidationException.class, () -> ReplenishmentTaskId.parse("1-1-1-1-1"));
+        assertThrows(ValidationException.class, () -> ReplenishmentTaskId.parse("11111111-1111-1111-1111-11111111111"));
+        assertThrows(ValidationException.class, () -> ReplenishmentTaskId.parse(null));
+        assertThrows(ValidationException.class, () -> ReplenishmentTaskId.parse(""));
     }
 
     @Test
